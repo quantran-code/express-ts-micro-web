@@ -13,7 +13,7 @@ export interface OverdueLoan extends Loan {
   dueDate: string
 }
 
-function isLoan(value: unknown): value is Loan {
+export function isLoan(value: unknown): value is Loan {
   return (
     isRecord(value) &&
     typeof value.id === 'number' &&
@@ -41,6 +41,10 @@ export function borrowBook(
   body: { bookId: number },
 ): Promise<ApiResult<Loan>> {
   return requestJson('/loans', { method: 'POST', accessToken, body }, isLoan)
+}
+
+export function returnLoan(accessToken: string, loanId: number): Promise<ApiResult<Loan>> {
+  return requestJson(`/loans/${loanId}/return`, { method: 'POST', accessToken }, isLoan)
 }
 
 export function listOverdueLoans(accessToken: string): Promise<ApiResult<OverdueLoan[]>> {

@@ -214,3 +214,135 @@ body {
   margin: 0;
   font-size: 1rem;
 }
+
+.profile-section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #8888;
+}
+
+.profile-section h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+}
+
+.profile-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #8888;
+  border-radius: 0.375rem;
+}
+
+.profile-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+}
+
+.profile-value {
+  font-weight: 700;
+}
+
+.profile-form {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #8888;
+}
+
+.profile-heading {
+  margin: 1rem 0 1.25rem;
+  font-weight: 700;
+}
+
+.profile-save {
+  align-self: flex-start;
+  padding: 0.4rem 0.85rem;
+  font: inherit;
+  font-weight: 600;
+  color: #fff;
+  background: #4c7dff;
+  border: 1px solid #2f5fe0;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.profile-save:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.my-loans {
+  border-top-width: 4px;
+  border-top-color: #4c7dff;
+}
+
+.loans-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.loan-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #8888;
+  border-radius: 0.375rem;
+}
+
+.loan-borrowed {
+  font-weight: 600;
+  opacity: 1;
+}
+
+.return-button {
+  align-self: flex-start;
+  padding: 0.4rem 0.85rem;
+  font: inherit;
+  font-weight: 600;
+  color: #fff;
+  background: #4c7dff;
+  border: 1px solid #2f5fe0;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.return-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.member-row {
+  border-left-width: 4px;
+  border-left-color: #4c7dff;
+}
+
+.member-email {
+  text-transform: lowercase;
+}
+
+.delete-button {
+  align-self: flex-start;
+  padding: 0.4rem 0.85rem;
+  font: inherit;
+  font-weight: 600;
+  color: #fff;
+  background: #b3261e;
+  border: 1px solid #8c1d17;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.delete-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}

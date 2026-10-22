@@ -28,7 +28,7 @@ async function readJson(response: Response): Promise<unknown> {
 }
 
 export interface JsonRequest {
-  method: 'GET' | 'POST'
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE'
   accessToken: string
   body?: unknown
 }
@@ -75,4 +75,34 @@ export async function requestJson<T>(
   }
 
   return { ok: true, status: response.status, data: payload }
+}
+
+/**
+ * Calls the authenticated endpoints that answer with an empty success body, such
+ * as a 204 after a delete, and keeps the service's error string for the caller.
+ */
+export async function requestVoid(
+  path: string,
+  request: Omit<JsonRequest, 'body'>,
+): Promise<ApiResult<null>> {
+  let response: Response
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method: request.method,
+      headers: {
+        Authorization: `Bearer ${request.accessToken}`,
+      },
+    })
+  } catch {
+    return { ok: false, status: 0, error: UNREACHABLE_MESSAGE }
+  }
+
+  if (response.status < 200 || response.status >= 300) {
+    const payload = await readJson(response)
+
+    return { ok: false, status: response.status, error: readErrorMessage(payload) }
+  }
+
+  return { ok: true, status: response.status, data: null }
 }
