@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
-import { deleteMember, listMembers } from '../api/members'
+import { deactivateMember, deleteMember, listMembers } from '../api/members'
 import type { Member } from '../api/members'
 import { LibrarianOnly } from '../auth/LibrarianOnly'
 import { useSession } from '../auth/session'
+import { decodeAccessToken } from '../auth/token'
 
 export type MemberRowErrors = Record<number, string>
 
@@ -12,12 +13,14 @@ export function MembersPage(): ReactElement {
   const accessToken = session?.accessToken ?? null
   const role = session?.role ?? null
   const isLibrarian = role === 'librarian'
+  const viewerRole = accessToken === null ? undefined : decodeAccessToken(accessToken)?.role
 
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(isLibrarian && accessToken !== null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [rowErrors, setRowErrors] = useState<MemberRowErrors>({})
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [deactivatingId, setDeactivatingId] = useState<number | null>(null)
 
   useEffect(() => {
     if (accessToken === null || !isLibrarian) {
@@ -79,6 +82,32 @@ export function MembersPage(): ReactElement {
     setMembers((previous) => previous.filter((member) => member.id !== memberId))
   }
 
+  async function handleDeactivate(memberId: number) {
+    if (accessToken === null || deactivatingId !== null) {
+      return
+    }
+
+    setDeactivatingId(memberId)
+    setRowErrors((previous) => {
+      const next = { ...previous }
+      delete next[memberId]
+      return next
+    })
+
+    const result = await deactivateMember(accessToken, memberId)
+
+    setDeactivatingId(null)
+
+    if (!result.ok) {
+      setRowErrors((previous) => ({ ...previous, [memberId]: result.error }))
+      return
+    }
+
+    setMembers((previous) =>
+      previous.map((member) => (member.id === memberId ? { ...member, active: false } : member)),
+    )
+  }
+
   return (
     <section className="page">
       <h2>Members</h2>
@@ -105,6 +134,19 @@ export function MembersPage(): ReactElement {
               <li className="book-row member-row" key={member.id}>
                 <div className="book-title member-name">{member.name}</div>
                 <div className="book-meta member-email">{member.email}</div>
+                {member.active === false && <span className="inactive-badge">Inactive</span>}
+                {viewerRole === 'librarian' && member.active !== false && (
+                  <button
+                    type="button"
+                    className="deactivate-button"
+                    disabled={deactivatingId !== null}
+                    onClick={() => {
+                      void handleDeactivate(member.id)
+                    }}
+                  >
+                    Deactivate
+                  </button>
+                )}
                 <button
                   type="button"
                   className="delete-button"

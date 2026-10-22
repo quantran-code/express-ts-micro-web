@@ -125,4 +125,26 @@ describe('LoginPage', () => {
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toBe(message)
   })
+
+  it('renders the exact Account is deactivated message for a deactivated account', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock.mockResolvedValue(jsonResponse(401, { error: 'Account is deactivated' }))
+
+    renderLoginPage()
+    fillLoginForm('librarian@library.test', 'Librarian123!')
+    fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toBe('Account is deactivated')
+    expect(screen.queryByRole('status')).toBeNull()
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    const call = firstFetchCall(fetchMock)
+    expect(call.url).toBe(`${API_BASE_URL}/auth/login`)
+    expect(readJsonBody(call.init)).toEqual({
+      email: 'librarian@library.test',
+      password: 'Librarian123!',
+    })
+  })
 })

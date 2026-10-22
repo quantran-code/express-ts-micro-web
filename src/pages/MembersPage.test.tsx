@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { API_BASE_URL } from '../api/client'
 import type { Member } from '../api/members'
 import { writeSession } from '../auth/session'
-import { createFetchMock, jsonResponse } from '../test/http'
+import { createAccessToken, createFetchMock, jsonResponse } from '../test/http'
 import type { FetchCall, FetchMock } from '../test/http'
 import { MembersPage } from './MembersPage'
 
@@ -20,6 +20,7 @@ const grace: Member = {
 }
 
 const membersUrl = `${API_BASE_URL}/members`
+const adaDeactivateUrl = `${API_BASE_URL}/auth/members/42/deactivate`
 
 function urlOf(input: RequestInfo | URL): string {
   if (typeof input === 'string') {
@@ -63,6 +64,14 @@ function singleCall(fetchMock: FetchMock, method: string, url: string): FetchCal
 
 function signIn(role: 'member' | 'librarian', memberId: number | null) {
   writeSession({ accessToken: 'test-access-token', role, memberId })
+}
+
+/**
+ * The Deactivate button is gated on the role claim decoded from the access token,
+ * so those tests need a token the decoder can actually read.
+ */
+function signInWithToken(role: 'member' | 'librarian', memberId: number | null) {
+  writeSession({ accessToken: createAccessToken({ role, memberId }), role, memberId })
 }
 
 function renderMembersPage() {
@@ -173,5 +182,109 @@ describe('MembersPage', () => {
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toBe('Member service unavailable')
     expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull()
+  })
+
+  it('shows a Deactivate button beside Delete for a librarian token', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock.mockResolvedValue(jsonResponse(200, [ada, grace]))
+    signInWithToken('librarian', null)
+
+    renderMembersPage()
+
+    expect(await screen.findByText('Ada Lovelace')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Deactivate' })).toHaveLength(2)
+    expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(2)
+    expect(screen.queryByText('Inactive')).toBeNull()
+
+    const [firstDeactivateButton] = screen.getAllByRole('button', { name: 'Deactivate' })
+    expect(firstDeactivateButton.className).toBe('deactivate-button')
+  })
+
+  it('keeps the Deactivate button hidden for a member token', async () => {
+    const fetchMock = createFetchMock()
+    signInWithToken('member', 42)
+
+    renderMembersPage()
+
+    expect(await screen.findByText('Librarians only')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Deactivate' })).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('marks the row inactive in place when the deactivate succeeds', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock.mockImplementation((input, init) => {
+      if (init?.method === 'POST' && urlOf(input) === adaDeactivateUrl) {
+        return Promise.resolve(jsonResponse(200, { ...ada, active: false }))
+      }
+
+      return Promise.resolve(jsonResponse(200, [ada, grace]))
+    })
+    signInWithToken('librarian', null)
+
+    renderMembersPage()
+
+    expect(await screen.findByText('Ada Lovelace')).toBeInTheDocument()
+
+    const [firstDeactivate] = screen.getAllByRole('button', { name: 'Deactivate' })
+    fireEvent.click(firstDeactivate)
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: 'Deactivate' })).toHaveLength(1)
+    })
+
+    const badge = screen.getByText('Inactive')
+    expect(badge.className).toBe('inactive-badge')
+    expect(badge.closest('li')?.textContent).toContain('Ada Lovelace')
+    expect(screen.getByText('Grace Hopper')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(2)
+
+    expect(callsFor(fetchMock, 'POST', adaDeactivateUrl)).toHaveLength(1)
+    expect(singleCall(fetchMock, 'POST', adaDeactivateUrl).init.body).toBeUndefined()
+    expect(callsFor(fetchMock, 'GET', membersUrl)).toHaveLength(1)
+  })
+
+  it('shows the Inactive badge and no Deactivate button for a deactivated member', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock.mockResolvedValue(jsonResponse(200, [{ ...ada, active: false }, grace]))
+    signInWithToken('librarian', null)
+
+    renderMembersPage()
+
+    expect(await screen.findByText('Ada Lovelace')).toBeInTheDocument()
+
+    const badge = screen.getByText('Inactive')
+    expect(badge.closest('li')?.textContent).toContain('Ada Lovelace')
+
+    const [onlyDeactivate] = screen.getAllByRole('button', { name: 'Deactivate' })
+    expect(onlyDeactivate.closest('li')?.textContent).toContain('Grace Hopper')
+    expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(2)
+  })
+
+  it('renders the exact deactivate error next to the row and keeps it active', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock.mockImplementation((input, init) => {
+      if (init?.method === 'POST' && urlOf(input) === adaDeactivateUrl) {
+        return Promise.resolve(
+          jsonResponse(403, { error: 'Only a librarian can deactivate an account' }),
+        )
+      }
+
+      return Promise.resolve(jsonResponse(200, [ada, grace]))
+    })
+    signInWithToken('librarian', null)
+
+    renderMembersPage()
+
+    expect(await screen.findByText('Ada Lovelace')).toBeInTheDocument()
+
+    const [firstDeactivate] = screen.getAllByRole('button', { name: 'Deactivate' })
+    fireEvent.click(firstDeactivate)
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toBe('Only a librarian can deactivate an account')
+    expect(alert.closest('li')?.textContent).toContain('Ada Lovelace')
+    expect(screen.queryByText('Inactive')).toBeNull()
+    expect(screen.getAllByRole('button', { name: 'Deactivate' })).toHaveLength(2)
   })
 })

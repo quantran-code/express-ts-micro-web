@@ -7,6 +7,7 @@ export interface Member {
   id: number
   name: string
   email: string
+  active?: boolean
 }
 
 export interface UpdateMemberBody {
@@ -19,7 +20,8 @@ function isMember(value: unknown): value is Member {
     isRecord(value) &&
     typeof value.id === 'number' &&
     typeof value.name === 'string' &&
-    typeof value.email === 'string'
+    typeof value.email === 'string' &&
+    (value.active === undefined || typeof value.active === 'boolean')
   )
 }
 
@@ -49,6 +51,17 @@ export function listMembers(accessToken: string): Promise<ApiResult<Member[]>> {
 
 export function deleteMember(accessToken: string, memberId: number): Promise<ApiResult<null>> {
   return requestVoid(`/members/${memberId}`, { method: 'DELETE', accessToken })
+}
+
+export function deactivateMember(
+  accessToken: string,
+  memberId: number,
+): Promise<ApiResult<Member>> {
+  return requestJson(
+    `/auth/members/${memberId}/deactivate`,
+    { method: 'POST', accessToken },
+    isMember,
+  )
 }
 
 export function listMemberLoans(accessToken: string, memberId: number): Promise<ApiResult<Loan[]>> {
