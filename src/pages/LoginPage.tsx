@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { loginUser } from '../api/client'
 import type { AuthRole } from '../api/client'
 import { decodeAccessToken } from '../auth/token'
+import { writeSession } from '../auth/session'
 
 interface Session {
   accessToken: string
@@ -41,6 +42,12 @@ export function LoginPage() {
     }
 
     const decoded = decodeAccessToken(result.data.accessToken)
+
+    writeSession({
+      accessToken: result.data.accessToken,
+      role: result.data.role,
+      memberId: decoded?.memberId ?? null,
+    })
 
     setSession({
       accessToken: result.data.accessToken,
