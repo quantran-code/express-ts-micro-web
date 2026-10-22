@@ -346,3 +346,36 @@ body {
   cursor: not-allowed;
   opacity: 0.55;
 }
+
+.report-section {
+  border-top-width: 4px;
+  border-top-color: #4c7dff;
+}
+
+.report-table {
+  width: 100%;
+  margin-top: 0.75rem;
+  border-collapse: collapse;
+}
+
+.report-table caption {
+  text-align: left;
+  font-weight: 600;
+}
+
+.report-table th,
+.report-table td {
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+  border: 1px solid #8888;
+}
+
+.report-table th {
+  font-weight: 700;
+  background: #4c7dff1a;
+}
+
+.report-count {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
