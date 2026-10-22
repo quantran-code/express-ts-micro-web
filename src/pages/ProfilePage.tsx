@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent, ReactElement } from 'react'
 import { getMember, listMemberLoans, updateMember } from '../api/members'
 import type { Member } from '../api/members'
+import { formatPageError } from '../api/client'
 import { returnLoan } from '../api/loans'
 import type { Loan } from '../api/loans'
 import { useSession } from '../auth/session'
@@ -53,7 +54,7 @@ export function ProfilePage(): ReactElement {
 
       if (!result.ok) {
         setMember(null)
-        setLoadError(result.error)
+        setLoadError(formatPageError(result))
         return
       }
 
@@ -92,7 +93,7 @@ export function ProfilePage(): ReactElement {
 
       if (!result.ok) {
         setLoans([])
-        setLoansError(result.error)
+        setLoansError(formatPageError(result))
         return
       }
 
@@ -131,7 +132,7 @@ export function ProfilePage(): ReactElement {
     setSaving(false)
 
     if (!result.ok) {
-      setSaveError(result.error)
+      setSaveError(formatPageError(result))
       return
     }
 
@@ -157,7 +158,12 @@ export function ProfilePage(): ReactElement {
     setReturningId(null)
 
     if (!result.ok) {
-      setLoanErrors((previous) => ({ ...previous, [loanId]: result.error }))
+      const message = formatPageError(result)
+
+      if (message !== null) {
+        setLoanErrors((previous) => ({ ...previous, [loanId]: message }))
+      }
+
       return
     }
 

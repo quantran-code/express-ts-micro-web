@@ -287,4 +287,77 @@ describe('MembersPage', () => {
     expect(screen.queryByText('Inactive')).toBeNull()
     expect(screen.getAllByRole('button', { name: 'Deactivate' })).toHaveLength(2)
   })
+
+  it('appends the requestId when the member list cannot be loaded', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock.mockResolvedValue(
+      jsonResponse(500, { error: 'Member service unavailable', requestId: 'req-members-500' }),
+    )
+    signIn('librarian', null)
+
+    renderMembersPage()
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toBe('Member service unavailable (ref: req-members-500)')
+    expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull()
+  })
+
+  it('appends the requestId next to the row when a delete is refused', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock.mockImplementation((_input, init) => {
+      if (init?.method === 'DELETE') {
+        return Promise.resolve(
+          jsonResponse(409, {
+            error: 'Cannot delete a member with active loans',
+            requestId: 'req-delete-409',
+          }),
+        )
+      }
+
+      return Promise.resolve(jsonResponse(200, [ada, grace]))
+    })
+    signIn('librarian', null)
+
+    renderMembersPage()
+
+    expect(await screen.findByText('Ada Lovelace')).toBeInTheDocument()
+
+    const [firstDelete] = screen.getAllByRole('button', { name: 'Delete' })
+    fireEvent.click(firstDelete)
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toBe('Cannot delete a member with active loans (ref: req-delete-409)')
+    expect(alert.closest('li')?.textContent).toContain('Ada Lovelace')
+  })
+
+  it('appends the requestId next to the row when a deactivate is refused', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock.mockImplementation((input, init) => {
+      if (init?.method === 'POST' && urlOf(input) === adaDeactivateUrl) {
+        return Promise.resolve(
+          jsonResponse(403, {
+            error: 'Only a librarian can deactivate an account',
+            requestId: 'req-deactivate-403',
+          }),
+        )
+      }
+
+      return Promise.resolve(jsonResponse(200, [ada, grace]))
+    })
+    signInWithToken('librarian', null)
+
+    renderMembersPage()
+
+    expect(await screen.findByText('Ada Lovelace')).toBeInTheDocument()
+
+    const [firstDeactivate] = screen.getAllByRole('button', { name: 'Deactivate' })
+    fireEvent.click(firstDeactivate)
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toBe(
+      'Only a librarian can deactivate an account (ref: req-deactivate-403)',
+    )
+    expect(alert.closest('li')?.textContent).toContain('Ada Lovelace')
+    expect(screen.queryByText('Inactive')).toBeNull()
+  })
 })

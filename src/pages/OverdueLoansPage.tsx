@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
 import { listOverdueLoans } from '../api/loans'
 import type { OverdueLoan } from '../api/loans'
+import { formatPageError } from '../api/client'
 import { LibrarianOnly } from '../auth/LibrarianOnly'
 import { useSession } from '../auth/session'
 
@@ -37,7 +38,7 @@ export function OverdueLoansPage(): ReactElement {
 
       if (!result.ok) {
         setLoans([])
-        setError(result.error)
+        setError(formatPageError(result))
         return
       }
 

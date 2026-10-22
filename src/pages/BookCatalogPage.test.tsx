@@ -294,4 +294,104 @@ describe('BookCatalogPage', () => {
     expect(screen.getByText('Librarians only')).toBeInTheDocument()
     expect(screen.queryByLabelText('Title')).toBeNull()
   })
+
+  it('appends the requestId when the catalog cannot be loaded', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock.mockResolvedValue(
+      jsonResponse(503, { error: 'Catalog unavailable', requestId: 'req-catalog-503' }),
+    )
+    signIn('member', 42)
+
+    renderCatalogPage()
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toBe('Catalog unavailable (ref: req-catalog-503)')
+  })
+
+  it('appends the requestId when the search fails', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock.mockImplementation((input) => {
+      if (urlOf(input).includes('/books/search')) {
+        return Promise.resolve(
+          jsonResponse(502, { error: 'Search unavailable', requestId: 'req-search-502' }),
+        )
+      }
+
+      return Promise.resolve(jsonResponse(200, [dune]))
+    })
+    signIn('member', 42)
+
+    renderCatalogPage()
+
+    expect(await screen.findByText('Dune')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Search books'), { target: { value: 'emm' } })
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toBe('Search unavailable (ref: req-search-502)')
+    await waitFor(() => {
+      expect(screen.queryByText('Dune')).toBeNull()
+    })
+  })
+
+  it('appends the requestId next to the row when a borrow is refused', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(200, [dune]))
+      .mockResolvedValueOnce(
+        jsonResponse(409, {
+          error: 'This member already has an active loan for this book',
+          requestId: 'req-loan-409',
+        }),
+      )
+    signIn('member', 42)
+
+    renderCatalogPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Borrow' }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toBe(
+      'This member already has an active loan for this book (ref: req-loan-409)',
+    )
+  })
+
+  it('appends the requestId when adding a book is refused', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(200, [dune]))
+      .mockResolvedValueOnce(
+        jsonResponse(409, { error: 'ISBN already exists', requestId: 'req-book-409' }),
+      )
+    signIn('librarian', null)
+
+    renderCatalogPage()
+
+    expect(await screen.findByText('Dune')).toBeInTheDocument()
+
+    fillAddBookForm({
+      title: 'Dune',
+      author: 'Frank Herbert',
+      isbn: '9780441013593',
+      totalCopies: '2',
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Add book' }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toBe('ISBN already exists (ref: req-book-409)')
+  })
+
+  it('renders no error text when the catalog answers 401', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock.mockResolvedValue(
+      jsonResponse(401, { error: 'Invalid or expired token', requestId: 'req-401' }),
+    )
+    signIn('member', 42)
+
+    renderCatalogPage()
+
+    expect(await screen.findByText('No books found.')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.queryByText(/Invalid or expired token/)).toBeNull()
+  })
 })

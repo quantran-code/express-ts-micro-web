@@ -304,4 +304,80 @@ describe('ProfilePage', () => {
     expect(screen.getByText('Book 7')).toBeInTheDocument()
     expect(screen.getByText('Book 9')).toBeInTheDocument()
   })
+
+  it('appends the requestId when the profile cannot be loaded', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock.mockImplementation((input) => {
+      if (urlOf(input) === loansUrl) {
+        return Promise.resolve(jsonResponse(200, []))
+      }
+
+      return Promise.resolve(
+        jsonResponse(500, { error: 'Member service unavailable', requestId: 'req-profile-500' }),
+      )
+    })
+    signIn('member', 42)
+
+    renderProfilePage()
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toBe('Member service unavailable (ref: req-profile-500)')
+  })
+
+  it('appends the requestId when the save is refused', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock.mockImplementation((input, init) => {
+      if (urlOf(input) === loansUrl) {
+        return Promise.resolve(jsonResponse(200, []))
+      }
+
+      if (init?.method === 'PATCH') {
+        return Promise.resolve(
+          jsonResponse(409, { error: 'Email already registered', requestId: 'req-patch-409' }),
+        )
+      }
+
+      return Promise.resolve(jsonResponse(200, member))
+    })
+    signIn('member', 42)
+
+    renderProfilePage()
+
+    expect(await screen.findByText('Ada Lovelace')).toBeInTheDocument()
+
+    fillEditForm('Ada Lovelace', 'taken@example.com')
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toBe('Email already registered (ref: req-patch-409)')
+  })
+
+  it('appends the requestId when the return is refused', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock.mockImplementation((input, init) => {
+      if (urlOf(input) === loansUrl) {
+        return Promise.resolve(jsonResponse(200, [firstLoan, secondLoan]))
+      }
+
+      if (init?.method === 'POST') {
+        return Promise.resolve(
+          jsonResponse(409, { error: 'Loan already returned', requestId: 'req-return-409' }),
+        )
+      }
+
+      return Promise.resolve(jsonResponse(200, member))
+    })
+    signIn('member', 42)
+
+    renderProfilePage()
+
+    expect(await screen.findByText('Book 7')).toBeInTheDocument()
+
+    const [firstReturn] = screen.getAllByRole('button', { name: 'Return' })
+    fireEvent.click(firstReturn)
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toBe('Loan already returned (ref: req-return-409)')
+    expect(screen.getByText('Book 7')).toBeInTheDocument()
+  })
 })

@@ -149,4 +149,31 @@ describe('ReportsPage', () => {
     expect(screen.queryByRole('table', { name: 'Overdue summary' })).toBeNull()
     expect(fetchMock).not.toHaveBeenCalled()
   })
+
+  it('appends the requestId when a report cannot be loaded', async () => {
+    mockReports(
+      jsonResponse(502, { error: 'Report upstream unavailable', requestId: 'req-report-502' }),
+      jsonResponse(200, []),
+    )
+    signIn('librarian', null)
+
+    render(<ReportsPage />)
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toBe('Report upstream unavailable (ref: req-report-502)')
+    expect(screen.queryByRole('table', { name: 'Most borrowed' })).toBeNull()
+  })
+
+  it('appends the requestId when the overdue summary cannot be loaded', async () => {
+    mockReports(
+      jsonResponse(200, []),
+      jsonResponse(500, { error: 'Summary upstream unavailable', requestId: 'req-summary-500' }),
+    )
+    signIn('librarian', null)
+
+    render(<ReportsPage />)
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toBe('Summary upstream unavailable (ref: req-summary-500)')
+  })
 })

@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { SessionExpiryRedirect } from './auth/SessionExpiryRedirect'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { BookCatalogPage } from './pages/BookCatalogPage'
@@ -12,6 +13,7 @@ function App() {
     <div id="app">
       <h1>Library Portal</h1>
       <BrowserRouter>
+        <SessionExpiryRedirect />
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<LoginPage />} />

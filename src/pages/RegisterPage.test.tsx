@@ -123,6 +123,22 @@ describe('RegisterPage', () => {
     expect(await submitAndReadError()).toHaveTextContent(message)
   })
 
+  it('appends the requestId of the gateway to a failed registration', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock.mockResolvedValue(
+      jsonResponse(400, {
+        error: 'Password must be at least 8 characters',
+        requestId: 'req-register-400',
+      }),
+    )
+
+    renderRegisterPage()
+    fillRegisterForm('Ada', 'ada@library.test', 'short')
+
+    const alert = await submitAndReadError()
+    expect(alert.textContent).toBe('Password must be at least 8 characters (ref: req-register-400)')
+  })
+
   it('renders the exact error string for a 403 librarian escalation attempt', async () => {
     const fetchMock = createFetchMock()
     const message = 'Only a librarian can create a librarian account'

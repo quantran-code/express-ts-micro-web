@@ -89,4 +89,17 @@ describe('OverdueLoansPage', () => {
     expect(screen.queryByText(/^Book /)).toBeNull()
     expect(fetchMock).not.toHaveBeenCalled()
   })
+
+  it('appends the requestId when the overdue list cannot be loaded', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock.mockResolvedValue(
+      jsonResponse(500, { error: 'Overdue loans unavailable', requestId: 'req-overdue-500' }),
+    )
+    signIn('librarian', null)
+
+    renderOverduePage()
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toBe('Overdue loans unavailable (ref: req-overdue-500)')
+  })
 })

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link } from 'react-router-dom'
-import { loginUser } from '../api/client'
+import { Link, useLocation } from 'react-router-dom'
+import { formatApiError, isRecord, loginUser } from '../api/client'
 import type { AuthRole } from '../api/client'
 import { decodeAccessToken } from '../auth/token'
 import { writeSession } from '../auth/session'
@@ -13,6 +13,9 @@ interface Session {
 }
 
 export function LoginPage() {
+  const location = useLocation()
+  const sessionExpired = isRecord(location.state) && location.state.sessionExpired === true
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -37,7 +40,7 @@ export function LoginPage() {
 
     if (!result.ok) {
       setSession(null)
-      setError(result.error)
+      setError(formatApiError(result))
       return
     }
 
@@ -89,6 +92,11 @@ export function LoginPage() {
       {error !== null && (
         <p className="form-error" role="alert">
           {error}
+        </p>
+      )}
+      {sessionExpired && (
+        <p className="form-error session-expired" role="alert">
+          Your session expired, please log in again
         </p>
       )}
       {session !== null && (

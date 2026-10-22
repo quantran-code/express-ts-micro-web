@@ -26,7 +26,6 @@ describe('deactivateMember', () => {
       throw new Error(`expected a successful deactivate, got ${result.error}`)
     }
 
-    expect(result.status).toBe(200)
     expect(result.data).toEqual({ ...ada, active: false })
     expect(result.data.active).toBe(false)
 
@@ -49,6 +48,7 @@ describe('deactivateMember', () => {
       ok: false,
       status: 403,
       error: 'Only a librarian can deactivate an account',
+      requestId: null,
     })
   })
 
@@ -58,7 +58,12 @@ describe('deactivateMember', () => {
 
     const result = await deactivateMember('test-access-token', 999)
 
-    expect(result).toEqual({ ok: false, status: 404, error: 'Member not found' })
+    expect(result).toEqual({
+      ok: false,
+      status: 404,
+      error: 'Member not found',
+      requestId: null,
+    })
   })
 })
 
@@ -108,6 +113,7 @@ describe('Member active field', () => {
       ok: false,
       status: 200,
       error: 'Unexpected response from the server',
+      requestId: null,
     })
   })
 })

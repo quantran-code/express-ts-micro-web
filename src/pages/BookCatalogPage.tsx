@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent, ReactElement } from 'react'
 import { createBook, listBooks, searchBooks } from '../api/catalog'
 import type { Book } from '../api/catalog'
+import { formatPageError } from '../api/client'
 import { borrowBook } from '../api/loans'
 import { LibrarianOnly } from '../auth/LibrarianOnly'
 import { useSession } from '../auth/session'
@@ -58,7 +59,7 @@ export function BookCatalogPage(): ReactElement {
 
         if (!allBooks.ok) {
           setBooks([])
-          setLoadError(allBooks.error)
+          setLoadError(formatPageError(allBooks))
           return
         }
 
@@ -76,7 +77,7 @@ export function BookCatalogPage(): ReactElement {
 
       if (!matches.ok) {
         setBooks([])
-        setLoadError(matches.error)
+        setLoadError(formatPageError(matches))
         return
       }
 
@@ -107,7 +108,12 @@ export function BookCatalogPage(): ReactElement {
     setBorrowingId(null)
 
     if (!result.ok) {
-      setRowErrors((previous) => ({ ...previous, [book.id]: result.error }))
+      const message = formatPageError(result)
+
+      if (message !== null) {
+        setRowErrors((previous) => ({ ...previous, [book.id]: message }))
+      }
+
       return
     }
 
@@ -141,7 +147,7 @@ export function BookCatalogPage(): ReactElement {
     setAdding(false)
 
     if (!result.ok) {
-      setAddError(result.error)
+      setAddError(formatPageError(result))
       return
     }
 

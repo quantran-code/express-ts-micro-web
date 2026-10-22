@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
 import { deactivateMember, deleteMember, listMembers } from '../api/members'
 import type { Member } from '../api/members'
+import { formatPageError } from '../api/client'
 import { LibrarianOnly } from '../auth/LibrarianOnly'
 import { useSession } from '../auth/session'
 import { decodeAccessToken } from '../auth/token'
@@ -44,7 +45,7 @@ export function MembersPage(): ReactElement {
 
       if (!result.ok) {
         setMembers([])
-        setLoadError(result.error)
+        setLoadError(formatPageError(result))
         return
       }
 
@@ -75,7 +76,12 @@ export function MembersPage(): ReactElement {
     setDeletingId(null)
 
     if (!result.ok) {
-      setRowErrors((previous) => ({ ...previous, [memberId]: result.error }))
+      const message = formatPageError(result)
+
+      if (message !== null) {
+        setRowErrors((previous) => ({ ...previous, [memberId]: message }))
+      }
+
       return
     }
 
@@ -99,7 +105,12 @@ export function MembersPage(): ReactElement {
     setDeactivatingId(null)
 
     if (!result.ok) {
-      setRowErrors((previous) => ({ ...previous, [memberId]: result.error }))
+      const message = formatPageError(result)
+
+      if (message !== null) {
+        setRowErrors((previous) => ({ ...previous, [memberId]: message }))
+      }
+
       return
     }
 

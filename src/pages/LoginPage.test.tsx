@@ -113,6 +113,21 @@ describe('LoginPage', () => {
     expect(screen.queryByRole('status')).toBeNull()
   })
 
+  it('appends the requestId the gateway returned to the failed login message', async () => {
+    const fetchMock = createFetchMock()
+    fetchMock.mockResolvedValue(
+      jsonResponse(401, { error: 'Invalid credentials', requestId: 'req-login-1' }),
+    )
+
+    renderLoginPage()
+    fillLoginForm('librarian@library.test', 'WrongPassword1!')
+    fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toBe('Invalid credentials (ref: req-login-1)')
+    expect(screen.queryByText('Your session expired, please log in again')).toBeNull()
+  })
+
   it('renders a different 401 error string verbatim instead of a hard-coded message', async () => {
     const fetchMock = createFetchMock()
     const message = 'Account locked, contact a librarian'

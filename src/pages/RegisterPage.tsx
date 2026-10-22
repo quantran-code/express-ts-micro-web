@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { registerUser } from '../api/client'
+import { formatApiError, registerUser } from '../api/client'
 import type { AuthRole, RegisterResponse } from '../api/client'
 
 export function RegisterPage() {
@@ -32,7 +32,7 @@ export function RegisterPage() {
 
     if (!result.ok) {
       setRegistered(null)
-      setError(result.error)
+      setError(formatApiError(result))
       return
     }
 

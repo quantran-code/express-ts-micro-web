@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
 import { fetchMostBorrowed, fetchOverdueSummary } from '../api/reports'
 import type { MostBorrowedRow, OverdueSummaryRow } from '../api/reports'
+import { formatPageError } from '../api/client'
 import { LibrarianOnly } from '../auth/LibrarianOnly'
 import { useSession } from '../auth/session'
 
@@ -40,14 +41,14 @@ export function ReportsPage(): ReactElement {
       if (!mostBorrowedResult.ok) {
         setMostBorrowed([])
         setOverdueSummary([])
-        setError(mostBorrowedResult.error)
+        setError(formatPageError(mostBorrowedResult))
         return
       }
 
       if (!overdueSummaryResult.ok) {
         setMostBorrowed([])
         setOverdueSummary([])
-        setError(overdueSummaryResult.error)
+        setError(formatPageError(overdueSummaryResult))
         return
       }
 

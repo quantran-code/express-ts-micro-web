@@ -1,7 +1,7 @@
 import type { ApiResult } from './client'
 import { isLoan } from './loans'
 import type { Loan } from './loans'
-import { isRecord, requestJson, requestVoid } from './request'
+import { isRecord, requestJson, requestVoid } from './client'
 
 export interface Member {
   id: number
